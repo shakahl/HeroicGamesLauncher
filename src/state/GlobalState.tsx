@@ -424,7 +424,7 @@ export class GlobalState extends PureComponent<Props> {
       case 'win':
         return library.filter((game) => {
           return game.is_installed
-            ? game.install.platform === 'windows'
+            ? game.install.platform?.toLocaleLowerCase() === 'windows'
             : process.platform === 'darwin'
             ? !game.is_mac_native
             : !game.is_linux_native
