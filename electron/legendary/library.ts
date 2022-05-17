@@ -477,6 +477,7 @@ export class LegendaryLibrary {
       save_folder: saveFolder,
       title,
       canRunOffline,
+      platforms: releaseInfo[0].platform,
       is_linux_native: false,
       runner: 'legendary',
       store_url: formatEpicStoreUrl(title)

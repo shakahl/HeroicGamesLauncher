@@ -48,7 +48,7 @@ export default function GamePage(): JSX.Element | null {
   const { t: t2 } = useTranslation('translation')
 
   const [tabToShow, setTabToShow] = useState('infoTab')
-  const [showModal, setShowModal] = useState({ game: '', show: false })
+  const [showModal, setShowModal] = useState({ show: false, gameinfo: [] })
 
   const { libraryStatus, handleGameStatus, epic, gog, gameUpdates, platform } =
     useContext(ContextProvider)
@@ -143,7 +143,7 @@ export default function GamePage(): JSX.Element | null {
   }
 
   function handleModal() {
-    setShowModal({ game: appName, show: true })
+    setShowModal({ show: true, gameinfo: [] })
   }
 
   const hasUpdate = gameUpdates?.includes(appName)
@@ -208,9 +208,9 @@ export default function GamePage(): JSX.Element | null {
       <div className="gameConfigContainer">
         {showModal.show && (
           <InstallModal
-            appName={showModal.game}
             runner={runner}
-            backdropClick={() => setShowModal({ game: '', show: false })}
+            backdropClick={() => setShowModal({ show: false, gameinfo: [] })}
+            gameinfo={gameInfo}
           />
         )}
         {title ? (

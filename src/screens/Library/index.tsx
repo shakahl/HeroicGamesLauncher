@@ -32,10 +32,14 @@ export default function Library(): JSX.Element {
     libraryTopSection
   } = useContext(ContextProvider)
 
-  const [showModal, setShowModal] = useState({
-    game: '',
+  const [showModal, setShowModal] = useState<{
+    show: boolean
+    gameinfo: GameInfo | null
+    runner: Runner
+  }>({
     show: false,
-    runner: 'legendary' as Runner
+    gameinfo: null,
+    runner: 'legendary'
   })
   const [sortDescending, setSortDescending] = useState(
     JSON.parse(storage?.getItem('sortDescending') || 'false')
@@ -70,8 +74,8 @@ export default function Library(): JSX.Element {
     }
   }
 
-  function handleModal(appName: string, runner: Runner) {
-    setShowModal({ game: appName, show: true, runner })
+  function handleModal(runner: Runner, gameinfo: GameInfo | null) {
+    setShowModal({ show: true, runner, gameinfo })
   }
 
   function handleSortDescending() {
@@ -201,10 +205,14 @@ export default function Library(): JSX.Element {
 
       {showModal.show && (
         <InstallModal
-          appName={showModal.game}
           runner={showModal.runner}
+          gameinfo={showModal.gameinfo}
           backdropClick={() =>
-            setShowModal({ game: '', show: false, runner: 'legendary' })
+            setShowModal({
+              show: false,
+              runner: 'legendary',
+              gameinfo: null
+            })
           }
         />
       )}

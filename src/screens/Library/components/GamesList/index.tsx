@@ -7,7 +7,7 @@ import ContextProvider from 'src/state/ContextProvider'
 interface Props {
   library: GameInfo[]
   layout?: string
-  handleGameCardClick: (app_name: string, runner: Runner) => void
+  handleGameCardClick: (runner: Runner, gameinfo: GameInfo) => void
 }
 
 export const GamesList = ({
@@ -26,8 +26,8 @@ export const GamesList = ({
       })}
     >
       {!!library.length &&
-        library.map(
-          ({
+        library.map((gameinfo) => {
+          const {
             title,
             art_square,
             art_cover,
@@ -38,33 +38,32 @@ export const GamesList = ({
             cloud_save_enabled,
             is_game,
             install: { version, install_size, is_dlc, platform }
-          }: GameInfo) => {
-            if (is_dlc) {
-              return null
-            }
-            const hasUpdate = gameUpdates?.includes(app_name)
-            return (
-              <GameCard
-                key={app_name}
-                runner={runner}
-                cover={art_square}
-                coverList={art_cover}
-                logo={art_logo}
-                hasCloudSave={cloud_save_enabled}
-                title={title}
-                appName={app_name}
-                isInstalled={is_installed}
-                isGame={is_game}
-                version={`${version}`}
-                size={`${install_size}`}
-                hasUpdate={hasUpdate}
-                buttonClick={() => handleGameCardClick(app_name, runner)}
-                forceCard={layout === 'grid'}
-                installedPlatform={platform}
-              />
-            )
+          } = gameinfo
+          if (is_dlc) {
+            return null
           }
-        )}
+          const hasUpdate = gameUpdates?.includes(app_name)
+          return (
+            <GameCard
+              key={app_name}
+              runner={runner}
+              cover={art_square}
+              coverList={art_cover}
+              logo={art_logo}
+              hasCloudSave={cloud_save_enabled}
+              title={title}
+              appName={app_name}
+              isInstalled={is_installed}
+              isGame={is_game}
+              version={`${version}`}
+              size={`${install_size}`}
+              hasUpdate={hasUpdate}
+              buttonClick={() => handleGameCardClick(runner, gameinfo)}
+              forceCard={layout === 'grid'}
+              installedPlatform={platform}
+            />
+          )
+        })}
     </div>
   )
 }

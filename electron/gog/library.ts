@@ -409,6 +409,11 @@ export class GOGLibrary {
       save_folder: '',
       title: info.title,
       canRunOffline: true,
+      platforms: [
+        'Windows',
+        info.worksOn.Mac && 'Mac',
+        info.worksOn.Linux && 'Linux'
+      ],
       is_mac_native: info.worksOn.Mac,
       is_linux_native: info.worksOn.Linux
     }

@@ -140,6 +140,7 @@ export interface GameInfo {
   save_folder: string
   title: string
   canRunOffline: boolean
+  platforms: PlatformToInstall[]
 }
 
 export interface HiddenGame {

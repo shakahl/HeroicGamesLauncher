@@ -73,6 +73,8 @@ export interface ExtraInfo {
 }
 
 export type GameConfigVersion = 'auto' | 'v0' | 'v0.1'
+
+export type PlatformsToInstall = 'Windows' | 'Linux' | 'Mac' | ''
 export interface GameInfo {
   runner: Runner
   store_url: string
@@ -94,6 +96,7 @@ export interface GameInfo {
   namespace: string
   save_folder: string
   title: string
+  platforms: PlatformsToInstall[]
   canRunOffline: boolean
   is_mac_native: boolean
   is_linux_native: boolean

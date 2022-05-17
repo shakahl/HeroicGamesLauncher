@@ -20,7 +20,6 @@ import React, {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { UpdateComponent } from 'src/components/UI'
 import {
   getAppSettings,
   getGameInfo,
@@ -33,6 +32,7 @@ import {
 import ContextProvider from 'src/state/ContextProvider'
 import {
   AppSettings,
+  GameInfo,
   GameStatus,
   InstallInfo,
   InstallProgress,
@@ -53,15 +53,16 @@ import ToggleSwitch from 'src/components/UI/ToggleSwitch'
 import './index.css'
 
 import { SDL_GAMES, SelectiveDownload } from './selective_dl'
+import { UpdateComponent } from 'src/components/UI'
 
 const { ipcRenderer } = window.require('electron') as {
   ipcRenderer: IpcRenderer
 }
 
 type Props = {
-  appName: string
   backdropClick: () => void
   runner: Runner
+  gameinfo: GameInfo | null
 }
 
 const storage: Storage = window.localStorage
@@ -89,10 +90,21 @@ function getUniqueKey(sdl: SelectiveDownload) {
 }
 
 export default function InstallModal({
-  appName,
+  gameinfo,
   backdropClick,
   runner
 }: Props) {
+  if (!gameinfo) {
+    return <UpdateComponent />
+  }
+  const {
+    app_name: appName,
+    title,
+    platforms,
+    is_linux_native,
+    is_mac_native
+  } = gameinfo
+
   const previousProgress = JSON.parse(
     storage.getItem(appName) || '{}'
   ) as InstallProgress
@@ -118,25 +130,22 @@ export default function InstallModal({
   const [installLanguage, setInstallLanguage] = useState('')
   const [spaceLeft, setSpaceLeft] = useState('')
 
-  const [isLinuxNative, setIsLinuxNative] = useState(false)
-  const [isMacNative, setIsMacNative] = useState(false)
-  const [defaultPlatform, setDefaultPlatform] = useState<PlatformToInstall>('')
-
   const installFolder = gameStatus?.folder || installPath
 
   const isMac = platform === 'darwin'
   const isLinux = platform === 'linux'
 
-  const platforms = [
+  const platformsToInstall = [
     {
       name: 'Linux',
-      available: isLinuxNative && !isMac,
+      available:
+        isLinux && Boolean(platforms?.includes('Linux') || is_linux_native),
       value: 'Linux',
       icon: faLinux
     },
     {
       name: 'macOS',
-      available: isMacNative && !isLinux,
+      available: isMac && Boolean(platforms?.includes('Mac') || is_mac_native),
       value: 'Mac',
       icon: faApple
     },
@@ -148,21 +157,20 @@ export default function InstallModal({
     }
   ]
 
-  const availablePlatforms = platforms.filter((p) => p.available)
+  const availablePlatforms = platformsToInstall.filter((p) => p.available)
 
   useEffect(() => {
-    const selectedPlatform = isLinuxNative
+    const selectedPlatform = is_linux_native
       ? 'Linux'
-      : isMacNative
+      : is_mac_native
       ? 'Mac'
       : 'Windows'
 
     setPlatformToInstall(selectedPlatform)
-    setDefaultPlatform(selectedPlatform)
-  }, [isLinuxNative, isMacNative])
+  }, [])
 
   const [platformToInstall, setPlatformToInstall] =
-    useState<PlatformToInstall>(defaultPlatform)
+    useState<PlatformToInstall>('')
 
   const sdls: Array<SelectiveDownload> = SDL_GAMES[appName]
   const haveSDL = Array.isArray(sdls) && sdls.length !== 0
@@ -252,12 +260,13 @@ export default function InstallModal({
 
   useEffect(() => {
     const getInfo = async () => {
-      const installPlatform =
-        platformToInstall !== '' ? platformToInstall : 'Windows'
+      if (!platformToInstall) {
+        return
+      }
       const gameInstallInfo = await getInstallInfo(
         appName,
         runner,
-        installPlatform
+        platformToInstall
       )
       const gameInfo = await getGameInfo(appName, runner)
       if (!gameInstallInfo) {
@@ -268,7 +277,6 @@ export default function InstallModal({
         backdropClick()
         return
       }
-      const gameData = await getGameInfo(appName, runner)
       setGameInfo(gameInstallInfo)
       if (gameInstallInfo.manifest?.languages) {
         setInstallLanguages(gameInstallInfo.manifest.languages)
@@ -276,9 +284,8 @@ export default function InstallModal({
           getInstallLanguage(gameInstallInfo.manifest.languages, i18n.languages)
         )
       }
-      setIsLinuxNative(gameData.is_linux_native && isLinux)
-      setIsMacNative(gameData.is_mac_native && isMac)
-      if (installPlatform === 'Linux' && runner === 'gog') {
+
+      if (platformToInstall === 'Linux' && runner === 'gog') {
         const installer_languages = (await ipcRenderer.invoke(
           'getGOGLinuxInstallersLangs',
           appName
@@ -299,12 +306,12 @@ export default function InstallModal({
 
   const haveDLCs = gameInstallInfo?.game?.owned_dlc?.length > 0
   const DLCList = gameInstallInfo?.game?.owned_dlc
-  const downloadSize =
-    gameInstallInfo?.manifest?.download_size &&
-    size(Number(gameInstallInfo?.manifest?.download_size))
-  const installSize =
-    gameInstallInfo?.manifest?.disk_size &&
-    size(Number(gameInstallInfo?.manifest?.disk_size))
+  const downloadSize = gameInstallInfo?.manifest?.download_size
+    ? size(Number(gameInstallInfo?.manifest?.download_size))
+    : t('game.calculating', 'Calculating...')
+  const installSize = gameInstallInfo?.manifest?.disk_size
+    ? size(Number(gameInstallInfo?.manifest?.disk_size))
+    : t('game.calculating', 'Calculating...')
 
   const getLanguageName = useMemo(() => {
     return (language: string) => {
@@ -347,8 +354,6 @@ export default function InstallModal({
     }
   }, [hasWine, wineVersion])
 
-  const title = gameInstallInfo?.game?.title
-
   return (
     <div className="InstallModal">
       <Dialog
@@ -357,111 +362,153 @@ export default function InstallModal({
           'InstallModal__dialog--loading': !title
         })}
       >
-        {title ? (
-          <>
-            <DialogHeader onClose={backdropClick}>
-              {title}
-              {availablePlatforms.map((p) => (
-                <FontAwesomeIcon
-                  className="InstallModal__platformIcon"
-                  icon={p.icon}
-                  key={p.value}
-                />
-              ))}
-            </DialogHeader>
-            <DialogContent>
-              <div className="InstallModal__sizes">
-                <div className="InstallModal__size">
-                  <FontAwesomeIcon
-                    className="InstallModal__sizeIcon"
-                    icon={faDownload}
-                  />
-                  <div className="InstallModal__sizeLabel">
-                    {t('game.downloadSize', 'Download Size')}:
-                  </div>
-                  <div className="InstallModal__sizeValue">{downloadSize}</div>
-                </div>
-                <div className="InstallModal__size">
-                  <FontAwesomeIcon
-                    className="InstallModal__sizeIcon"
-                    icon={faHardDrive}
-                  />
-                  <div className="InstallModal__sizeLabel">
-                    {t('game.installSize', 'Install Size')}:
-                  </div>
-                  <div className="InstallModal__sizeValue">{installSize}</div>
-                </div>
-                {previousProgress.folder === installPath && (
-                  <div className="InstallModal__size">
-                    <FontAwesomeIcon
-                      className="InstallModal__sizeIcon"
-                      icon={faSpinner}
-                    />
-                    <div className="InstallModal__sizeLabel">
-                      {t('status.totalDownloaded', 'Total Downloaded')}:
-                    </div>
-                    <div className="InstallModal__sizeValue">
-                      {getProgress(previousProgress)}%
-                    </div>
-                  </div>
-                )}
+        <DialogHeader onClose={backdropClick}>
+          {title}
+          {availablePlatforms.map((p) => (
+            <FontAwesomeIcon
+              className="InstallModal__platformIcon"
+              icon={p.icon}
+              key={p.value}
+            />
+          ))}
+        </DialogHeader>
+        <DialogContent>
+          <div className="InstallModal__sizes">
+            <div className="InstallModal__size">
+              <FontAwesomeIcon
+                className="InstallModal__sizeIcon"
+                icon={faDownload}
+              />
+              <div className="InstallModal__sizeLabel">
+                {t('game.downloadSize', 'Download Size')}:
               </div>
-              {showPlatformSelection && (
-                <div className="InstallModal__control">
-                  <div className="InstallModal__controlLabel">
-                    {t('game.platform', 'Select Platform Version to Install')}:
-                  </div>
-                  <div className="InstallModal__controlInput">
-                    <FormControl select>
-                      <select
-                        className="FormControl__select"
-                        name="platform"
-                        id="platformPick"
-                        value={platformToInstall}
-                        onChange={(e) =>
-                          setPlatformToInstall(
-                            e.target.value as PlatformToInstall
-                          )
-                        }
-                      >
-                        {availablePlatforms.map((p) => (
-                          <option value={p.value} key={p.value}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
-                    </FormControl>
-                  </div>
+              <div className="InstallModal__sizeValue">{downloadSize}</div>
+            </div>
+            <div className="InstallModal__size">
+              <FontAwesomeIcon
+                className="InstallModal__sizeIcon"
+                icon={faHardDrive}
+              />
+              <div className="InstallModal__sizeLabel">
+                {t('game.installSize', 'Install Size')}:
+              </div>
+              <div className="InstallModal__sizeValue">{installSize}</div>
+            </div>
+            {previousProgress.folder === installPath && (
+              <div className="InstallModal__size">
+                <FontAwesomeIcon
+                  className="InstallModal__sizeIcon"
+                  icon={faSpinner}
+                />
+                <div className="InstallModal__sizeLabel">
+                  {t('status.totalDownloaded', 'Total Downloaded')}:
                 </div>
-              )}
-              {installLanguages && installLanguages?.length > 1 && (
-                <div className="InstallModal__control">
-                  <div className="InstallModal__controlLabel">
-                    {t('game.language', 'Language')}:
-                  </div>
-                  <div className="InstallModal__controlInput">
-                    <FormControl select>
-                      <select
-                        className="FormControl__select"
-                        name="language"
-                        id="languagePick"
-                        value={installLanguage}
-                        onChange={(e) => setInstallLanguage(e.target.value)}
-                      >
-                        {installLanguages &&
-                          installLanguages.map((value) => (
-                            <option value={value} key={value}>
-                              {getLanguageName(value)}
-                            </option>
-                          ))}
-                      </select>
-                    </FormControl>
-                  </div>
+                <div className="InstallModal__sizeValue">
+                  {getProgress(previousProgress)}%
                 </div>
-              )}
+              </div>
+            )}
+          </div>
+          {showPlatformSelection && (
+            <div className="InstallModal__control">
+              <div className="InstallModal__controlLabel">
+                {t('game.platform', 'Select Platform Version to Install')}:
+              </div>
+              <div className="InstallModal__controlInput">
+                <FormControl select>
+                  <select
+                    className="FormControl__select"
+                    name="platform"
+                    id="platformPick"
+                    value={platformToInstall}
+                    onChange={(e) =>
+                      setPlatformToInstall(e.target.value as PlatformToInstall)
+                    }
+                  >
+                    {availablePlatforms.map((p) => (
+                      <option value={p.value} key={p.value}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </FormControl>
+              </div>
+            </div>
+          )}
+          {installLanguages && installLanguages?.length > 1 && (
+            <div className="InstallModal__control">
+              <div className="InstallModal__controlLabel">
+                {t('game.language', 'Language')}:
+              </div>
+              <div className="InstallModal__controlInput">
+                <FormControl select>
+                  <select
+                    className="FormControl__select"
+                    name="language"
+                    id="languagePick"
+                    value={installLanguage}
+                    onChange={(e) => setInstallLanguage(e.target.value)}
+                  >
+                    {installLanguages &&
+                      installLanguages.map((value) => (
+                        <option value={value} key={value}>
+                          {getLanguageName(value)}
+                        </option>
+                      ))}
+                  </select>
+                </FormControl>
+              </div>
+            </div>
+          )}
+          <div className="InstallModal__control">
+            <div className="InstallModal__controlLabel">
+              {t('install.path', 'Select Install Path')}:
+            </div>
+            <div className="InstallModal__controlInput">
+              <FormControl
+                sideButton={
+                  <button
+                    className="FormControl__sideButton"
+                    onClick={async () =>
+                      ipcRenderer
+                        .invoke('openDialog', {
+                          buttonLabel: t('box.choose'),
+                          properties: ['openDirectory'],
+                          title: t('install.path')
+                        })
+                        .then(({ path }: Path) =>
+                          setInstallPath(path ? path : defaultPath)
+                        )
+                    }
+                  >
+                    <FontAwesomeIcon icon={faFolderOpen} />
+                  </button>
+                }
+              >
+                <input
+                  type="text"
+                  data-testid="setinstallpath"
+                  className="FormControl__input"
+                  placeholder={defaultPath}
+                  value={installPath.replaceAll("'", '')}
+                  onChange={(event) => setInstallPath(event.target.value)}
+                />
+              </FormControl>
+              <span className="diskSpaceInfo">
+                <span>
+                  {t('install.disk-space-left', 'Space Left on the Device')}:
+                </span>
+                <span>
+                  <strong>{` ${spaceLeft}`}</strong>
+                </span>
+              </span>
+            </div>
+          </div>
+          {hasWine && (
+            <>
               <div className="InstallModal__control">
                 <div className="InstallModal__controlLabel">
-                  {t('install.path', 'Select Install Path')}:
+                  {t('install.wineprefix', 'WinePrefix')}:
                 </div>
                 <div className="InstallModal__controlInput">
                   <FormControl
@@ -473,10 +520,13 @@ export default function InstallModal({
                             .invoke('openDialog', {
                               buttonLabel: t('box.choose'),
                               properties: ['openDirectory'],
-                              title: t('install.path')
+                              title: t(
+                                'box.wineprefix',
+                                'Select WinePrefix Folder'
+                              )
                             })
                             .then(({ path }: Path) =>
-                              setInstallPath(path ? path : defaultPath)
+                              setWinePrefix(path ? path : winePrefix)
                             )
                         }
                       >
@@ -488,158 +538,100 @@ export default function InstallModal({
                       type="text"
                       data-testid="setinstallpath"
                       className="FormControl__input"
-                      placeholder={defaultPath}
-                      value={installPath.replaceAll("'", '')}
-                      onChange={(event) => setInstallPath(event.target.value)}
+                      placeholder={winePrefix}
+                      value={winePrefix.replaceAll("'", '')}
+                      onChange={(event) => setWinePrefix(event.target.value)}
                     />
                   </FormControl>
-                  <span className="diskSpaceInfo">
-                    <span>
-                      {t('install.disk-space-left', 'Space Left on the Device')}
-                      :
-                    </span>
-                    <span>
-                      <strong>{` ${spaceLeft}`}</strong>
-                    </span>
-                  </span>
                 </div>
               </div>
-              {hasWine && (
-                <>
-                  <div className="InstallModal__control">
-                    <div className="InstallModal__controlLabel">
-                      {t('install.wineprefix', 'WinePrefix')}:
-                    </div>
-                    <div className="InstallModal__controlInput">
-                      <FormControl
-                        sideButton={
-                          <button
-                            className="FormControl__sideButton"
-                            onClick={async () =>
-                              ipcRenderer
-                                .invoke('openDialog', {
-                                  buttonLabel: t('box.choose'),
-                                  properties: ['openDirectory'],
-                                  title: t(
-                                    'box.wineprefix',
-                                    'Select WinePrefix Folder'
-                                  )
-                                })
-                                .then(({ path }: Path) =>
-                                  setWinePrefix(path ? path : winePrefix)
-                                )
-                            }
-                          >
-                            <FontAwesomeIcon icon={faFolderOpen} />
-                          </button>
-                        }
-                      >
-                        <input
-                          type="text"
-                          data-testid="setinstallpath"
-                          className="FormControl__input"
-                          placeholder={winePrefix}
-                          value={winePrefix.replaceAll("'", '')}
-                          onChange={(event) =>
-                            setWinePrefix(event.target.value)
-                          }
-                        />
-                      </FormControl>
-                    </div>
-                  </div>
-                  <div className="InstallModal__control">
-                    <div className="InstallModal__controlLabel">
-                      {t('install.wineversion')}:
-                    </div>
-                    <div className="InstallModal__controlInput">
-                      <FormControl select>
-                        <select
-                          className="FormControl__select"
-                          name="wineVersion"
-                          value={wineVersion && wineVersion.bin}
-                          onChange={(e) =>
-                            setWineVersion(
-                              wineVersionList.find(
-                                (version) => version.bin === e.target.value
-                              )
-                            )
-                          }
-                        >
-                          {wineVersionList &&
-                            wineVersionList.map((version) => (
-                              <option value={version.bin} key={version.bin}>
-                                {version.name}
-                              </option>
-                            ))}
-                        </select>
-                      </FormControl>
-                    </div>
-                  </div>
-                </>
-              )}
-              {(haveDLCs || haveSDL) && (
-                <div className="InstallModal__sectionHeader">
-                  {t('sdl.title', 'Select components to Install')}:
+              <div className="InstallModal__control">
+                <div className="InstallModal__controlLabel">
+                  {t('install.wineversion')}:
                 </div>
-              )}
-              {haveSDL && (
-                <div className="InstallModal__sdls">
-                  {sdls.map((sdl: SelectiveDownload) => (
-                    <label
-                      key={sdl.name}
-                      className="InstallModal__toggle toggleWrapper"
+                <div className="InstallModal__controlInput">
+                  <FormControl select>
+                    <select
+                      className="FormControl__select"
+                      name="wineVersion"
+                      value={wineVersion && wineVersion.bin}
+                      onChange={(e) =>
+                        setWineVersion(
+                          wineVersionList.find(
+                            (version) => version.bin === e.target.value
+                          )
+                        )
+                      }
                     >
-                      <ToggleSwitch
-                        title={sdl.name}
-                        value={
-                          !!sdl.mandatory || !!selectedSdls[getUniqueKey(sdl)]
-                        }
-                        disabled={sdl.mandatory}
-                        handleChange={(e) => handleSdl(sdl, e.target.checked)}
-                      />
-                      <span>{sdl.name}</span>
-                    </label>
-                  ))}
+                      {wineVersionList &&
+                        wineVersionList.map((version) => (
+                          <option value={version.bin} key={version.bin}>
+                            {version.name}
+                          </option>
+                        ))}
+                    </select>
+                  </FormControl>
                 </div>
-              )}
-              {haveDLCs && (
-                <div className="InstallModal__dlcs">
-                  <label
-                    className={classNames('InstallModal__toggle toggleWrapper')}
-                  >
-                    <ToggleSwitch
-                      value={installDlcs}
-                      handleChange={() => handleDlcs()}
-                      title={t('dlc.installDlcs', 'Install all DLCs')}
-                    />
-                    <span>{t('dlc.installDlcs', 'Install all DLCs')}:</span>
-                  </label>
-                  <div className="InstallModal__dlcsList">
-                    {DLCList.map(({ title }) => title).join(', ')}
-                  </div>
-                </div>
-              )}
-            </DialogContent>
-            <DialogFooter>
-              <button
-                onClick={async () => handleInstall('import')}
-                className={`button is-secondary outline`}
+              </div>
+            </>
+          )}
+          {(haveDLCs || haveSDL) && (
+            <div className="InstallModal__sectionHeader">
+              {t('sdl.title', 'Select components to Install')}:
+            </div>
+          )}
+          {haveSDL && (
+            <div className="InstallModal__sdls">
+              {sdls.map((sdl: SelectiveDownload) => (
+                <label
+                  key={sdl.name}
+                  className="InstallModal__toggle toggleWrapper"
+                >
+                  <ToggleSwitch
+                    title={sdl.name}
+                    value={!!sdl.mandatory || !!selectedSdls[getUniqueKey(sdl)]}
+                    disabled={sdl.mandatory}
+                    handleChange={(e) => handleSdl(sdl, e.target.checked)}
+                  />
+                  <span>{sdl.name}</span>
+                </label>
+              ))}
+            </div>
+          )}
+          {haveDLCs && (
+            <div className="InstallModal__dlcs">
+              <label
+                className={classNames('InstallModal__toggle toggleWrapper')}
               >
-                {t('button.import')}
-              </button>
-              <button
-                onClick={async () => handleInstall()}
-                className={`button is-secondary`}
-              >
-                {previousProgress.folder === installPath
-                  ? t('button.continue', 'Continue Download')
-                  : t('button.install')}
-              </button>
-            </DialogFooter>
-          </>
-        ) : (
-          <UpdateComponent inline />
-        )}
+                <ToggleSwitch
+                  value={installDlcs}
+                  handleChange={() => handleDlcs()}
+                  title={t('dlc.installDlcs', 'Install all DLCs')}
+                />
+                <span>{t('dlc.installDlcs', 'Install all DLCs')}:</span>
+              </label>
+              <div className="InstallModal__dlcsList">
+                {DLCList.map(({ title }) => title).join(', ')}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+        <DialogFooter>
+          <button
+            onClick={async () => handleInstall('import')}
+            className={`button is-secondary outline`}
+          >
+            {t('button.import')}
+          </button>
+          <button
+            onClick={async () => handleInstall()}
+            className={`button is-secondary`}
+          >
+            {previousProgress.folder === installPath
+              ? t('button.continue', 'Continue Download')
+              : t('button.install')}
+          </button>
+        </DialogFooter>
       </Dialog>
     </div>
   )
