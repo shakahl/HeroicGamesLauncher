@@ -8,7 +8,6 @@ import {
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import cx from 'classnames'
-import classNames from 'classnames'
 import { IpcRenderer } from 'electron'
 
 import React, {
@@ -48,12 +47,12 @@ import {
   DialogHeader
 } from 'src/components/UI/Dialog'
 import FormControl from 'src/components/UI/FormControl'
-import ToggleSwitch from 'src/components/UI/ToggleSwitch'
 
 import './index.css'
 
 import { SDL_GAMES, SelectiveDownload } from './selective_dl'
 import { UpdateComponent } from 'src/components/UI'
+import ExtraComponents from './components/ExtraComponents'
 
 const { ipcRenderer } = window.require('electron') as {
   ipcRenderer: IpcRenderer
@@ -83,10 +82,6 @@ function getInstallLanguage(
     }
   }
   return availableLanguages[0]
-}
-
-function getUniqueKey(sdl: SelectiveDownload) {
-  return sdl.tags.join(',')
 }
 
 export default function InstallModal({
@@ -135,27 +130,30 @@ export default function InstallModal({
   const isMac = platform === 'darwin'
   const isLinux = platform === 'linux'
 
-  const platformsToInstall = [
-    {
-      name: 'Linux',
-      available:
-        isLinux && Boolean(platforms?.includes('Linux') || is_linux_native),
-      value: 'Linux',
-      icon: faLinux
-    },
-    {
-      name: 'macOS',
-      available: isMac && Boolean(platforms?.includes('Mac') || is_mac_native),
-      value: 'Mac',
-      icon: faApple
-    },
-    {
-      name: 'Windows',
-      available: true,
-      value: 'Windows',
-      icon: faWindows
-    }
-  ]
+  const platformsToInstall = useMemo(() => {
+    return [
+      {
+        name: 'Linux',
+        available:
+          isLinux && Boolean(platforms?.includes('Linux') || is_linux_native),
+        value: 'Linux',
+        icon: faLinux
+      },
+      {
+        name: 'macOS',
+        available:
+          isMac && Boolean(platforms?.includes('Mac') || is_mac_native),
+        value: 'Mac',
+        icon: faApple
+      },
+      {
+        name: 'Windows',
+        available: true,
+        value: 'Windows',
+        icon: faWindows
+      }
+    ]
+  }, [appName])
 
   const availablePlatforms = platformsToInstall.filter((p) => p.available)
 
@@ -172,12 +170,18 @@ export default function InstallModal({
   const [platformToInstall, setPlatformToInstall] =
     useState<PlatformToInstall>('')
 
+  function getUniqueKey(sdl: SelectiveDownload) {
+    return sdl.tags.join(',')
+  }
+
   const sdls: Array<SelectiveDownload> = SDL_GAMES[appName]
   const haveSDL = Array.isArray(sdls) && sdls.length !== 0
 
   const [selectedSdls, setSelectedSdls] = useState<{ [key: string]: boolean }>(
     {}
   )
+
+  console.log('installModalRender')
 
   const sdlList = useMemo(() => {
     const list = []
@@ -306,6 +310,7 @@ export default function InstallModal({
 
   const haveDLCs = gameInstallInfo?.game?.owned_dlc?.length > 0
   const DLCList = gameInstallInfo?.game?.owned_dlc
+
   const downloadSize = gameInstallInfo?.manifest?.download_size
     ? size(Number(gameInstallInfo?.manifest?.download_size))
     : t('game.calculating', 'Calculating...')
@@ -575,45 +580,22 @@ export default function InstallModal({
               </div>
             </>
           )}
-          {(haveDLCs || haveSDL) && (
-            <div className="InstallModal__sectionHeader">
-              {t('sdl.title', 'Select components to Install')}:
-            </div>
-          )}
-          {haveSDL && (
-            <div className="InstallModal__sdls">
-              {sdls.map((sdl: SelectiveDownload) => (
-                <label
-                  key={sdl.name}
-                  className="InstallModal__toggle toggleWrapper"
-                >
-                  <ToggleSwitch
-                    title={sdl.name}
-                    value={!!sdl.mandatory || !!selectedSdls[getUniqueKey(sdl)]}
-                    disabled={sdl.mandatory}
-                    handleChange={(e) => handleSdl(sdl, e.target.checked)}
-                  />
-                  <span>{sdl.name}</span>
-                </label>
-              ))}
-            </div>
-          )}
-          {haveDLCs && (
-            <div className="InstallModal__dlcs">
-              <label
-                className={classNames('InstallModal__toggle toggleWrapper')}
-              >
-                <ToggleSwitch
-                  value={installDlcs}
-                  handleChange={() => handleDlcs()}
-                  title={t('dlc.installDlcs', 'Install all DLCs')}
-                />
-                <span>{t('dlc.installDlcs', 'Install all DLCs')}:</span>
-              </label>
-              <div className="InstallModal__dlcsList">
-                {DLCList.map(({ title }) => title).join(', ')}
-              </div>
-            </div>
+          {gameInstallInfo?.game?.owned_dlc ? (
+            <ExtraComponents
+              handleDlcs={handleDlcs}
+              handleSdl={handleSdl}
+              DLCList={DLCList}
+              haveDLCs={haveDLCs}
+              haveSDL={haveSDL}
+              sdls={sdls}
+              selectedSdls={selectedSdls}
+              installDlcs={installDlcs}
+              appName={appName}
+            />
+          ) : (
+            <span>
+              {t('game.checking_dlcs', 'Checking for available DLCs...')}{' '}
+            </span>
           )}
         </DialogContent>
         <DialogFooter>

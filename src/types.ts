@@ -174,7 +174,7 @@ export interface GameSettings {
   useSteamRuntime: boolean
 }
 
-type DLCInfo = {
+export type DLCInfo = {
   app_name: string
   title: string
 }
