@@ -252,12 +252,14 @@ class LegendaryGame extends Game {
       })
 
       child.stderr.on('data', (data: Buffer) => {
-        console.log(`stderr: ${data}`)
+        logError(`stderr: ${data}`, LogPrefix.Backend)
+        if (`${data}`.includes('failed')) {
+          rej(`${data}`)
+        }
       })
 
       child.on('close', (code, signal) => {
         if (signal) {
-          console.log({ signal })
           rej('Process terminated with signal ' + signal)
         }
 
@@ -265,7 +267,7 @@ class LegendaryGame extends Game {
       })
 
       child.on('error', (error) => {
-        console.log({ error })
+        logError(`${error}`, LogPrefix.Backend)
         rej(error)
       })
     })

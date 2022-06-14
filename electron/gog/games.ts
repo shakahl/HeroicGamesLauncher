@@ -2,7 +2,7 @@
 import { GOGLibrary } from './library'
 import { BrowserWindow } from 'electron'
 import { spawn } from 'child_process'
-import { join } from 'path'
+import { dirname, join } from 'path'
 import { Game } from '../games'
 import { GameConfig } from '../game_config'
 import { GlobalConfig } from '../config'
@@ -28,7 +28,14 @@ import {
 } from '../constants'
 import { configStore, installedGamesStore } from '../gog/electronStores'
 import { logError, logInfo, LogPrefix, logWarning } from '../logger/logger'
-import { errorHandler, execAsync, getFileSize, getSteamRuntime } from '../utils'
+import {
+  errorHandler,
+  execAsync,
+  getFileSize,
+  getSteamRuntime,
+  quoteIfNecessary,
+  searchForExecutableOnPath
+} from '../utils'
 import { GOGUser } from './user'
 import {
   launchCleanup,
@@ -427,14 +434,78 @@ class GOGGame extends Game {
     } else {
       newInstallPath += '/' + install_path.split('/').slice(-1)[0]
     }
+    const rsync = await searchForExecutableOnPath('rsync')
+    const rsyncCommand = `-avh --info=progress2 ${install_path} ${dirname(
+      newInstallPath
+    )}`.split(' ')
+
+    const removeFilesCommand = `rm -Rf ${quoteIfNecessary(install_path)}`
+    const mvCommand = `-f '${install_path}' '${newInstallPath}'`.split(' ')
+    const bin = rsync ? 'rsync' : 'mv'
+    const command = rsync ? rsyncCommand : mvCommand
 
     logInfo(`Moving ${title} to ${newInstallPath}`, LogPrefix.Gog)
-    await execAsync(`mv -f '${install_path}' '${newInstallPath}'`, execOptions)
-      .then(() => {
-        GOGLibrary.get().changeGameInstallPath(this.appName, newInstallPath)
-        logInfo(`Finished Moving ${title}`, LogPrefix.Gog)
+
+    await new Promise((res, rej) => {
+      const child = spawn(bin, [...command])
+      child.stdout.on('data', (data: Buffer) => {
+        const progress = `${data}`
+          ?.split('\r')[1]
+          ?.trim()
+          ?.replace(/\s{2,}/g, ' ')
+
+        const [bytes, percent, perf, eta] = progress ? progress.split(' ') : []
+        if (bytes && percent && perf && eta && rsync) {
+          this.window.webContents.send('setGameStatus', {
+            appName: this.appName,
+            runner: 'legendary',
+            status: 'moving',
+            progress: {
+              eta: `@${perf} | ${eta}`,
+              percent: Number(percent.replace('%', '')),
+              bytes: `${bytes}`
+            }
+          })
+        }
       })
-      .catch((error) => logError(`${error}`, LogPrefix.Gog))
+
+      child.stderr.on('data', (data: Buffer) => {
+        logError(`stderr: ${data}`, LogPrefix.Backend)
+        if (`${data}`.includes('failed')) {
+          rej(`${data}`)
+        }
+      })
+
+      child.on('close', (code, signal) => {
+        if (signal) {
+          rej('Process terminated with signal ' + signal)
+        }
+
+        res(`${code} - ${signal}`)
+      })
+
+      child.on('error', (error) => {
+        logError(`${error}`, LogPrefix.Backend)
+        rej(error)
+      })
+    })
+      .then(async () => {
+        // remove files in case rsync was used
+        GOGLibrary.get().changeGameInstallPath(this.appName, newInstallPath)
+
+        this.window.webContents.send('setGameStatus', {
+          appName: this.appName,
+          runner: 'legendary',
+          status: 'done'
+        })
+        if (!rsync) {
+          return
+        }
+        await execAsync(removeFilesCommand)
+          .then(() => logInfo('Old Files Removed', LogPrefix.Backend))
+          .catch(() => logError('Error removing old files', LogPrefix.Backend))
+      })
+      .catch((err) => logError(`${err}`, LogPrefix.Backend))
     return newInstallPath
   }
 
