@@ -114,7 +114,7 @@
         "hasUpdates": "New Version Available!",
         "installed": "Installed",
         "installing": "Installing",
-        "moving": "Moving Installation, please wait",
+        "moving_game": "Moving",
         "notinstalled": "This game is not installed",
         "processing": "Processing files, please wait",
         "reparing": "Repairing Game, please wait",

@@ -114,7 +114,7 @@
         "hasUpdates": "Új verzió elérhető!",
         "installed": "Telepítve",
         "installing": "Telepítés",
-        "moving": "Telepítés áthelyezése, kérlek várj",
+        "moving_game": "Moving",
         "notinstalled": "Ez a játék nincs telepítve",
         "processing": "Processing files, please wait",
         "reparing": "Játék javítása, kérlek várj",

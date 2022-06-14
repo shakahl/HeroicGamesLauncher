@@ -176,7 +176,7 @@
     "infobox": {
         "help": "Abi",
         "requirements": "Süsteeminõuded",
-        "wine-path": "Path"
+        "wine_path": "Path"
     },
     "install": {
         "path": "Valige paigaldustee"

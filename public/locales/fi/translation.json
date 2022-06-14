@@ -176,7 +176,7 @@
     "infobox": {
         "help": "Apua",
         "requirements": "Laitteistovaatimukset",
-        "wine-path": "Path"
+        "wine_path": "Path"
     },
     "install": {
         "path": "Valitse asennuspolku"

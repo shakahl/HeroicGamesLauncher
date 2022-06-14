@@ -176,7 +176,7 @@
     "infobox": {
         "help": "Помощ",
         "requirements": "Системни изисквания",
-        "wine-path": "Path"
+        "wine_path": "Path"
     },
     "install": {
         "path": "Изберете местоположение за инсталиране"

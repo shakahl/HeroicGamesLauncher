@@ -114,7 +114,7 @@
         "hasUpdates": "Има нова версия!",
         "installed": "Инсталирана",
         "installing": "В процес на инсталиране",
-        "moving": "Преместване на играта; моля, изчакайте",
+        "moving_game": "Moving",
         "notinstalled": "Играта не е инсталирана",
         "processing": "Processing files, please wait",
         "reparing": "Поправяне на играта; моля, изчакайте",

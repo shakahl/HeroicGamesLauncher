@@ -114,7 +114,7 @@
         "hasUpdates": "新版本可用！",
         "installed": "已安裝",
         "installing": "正在安裝",
-        "moving": "正在移動，請稍等",
+        "moving_game": "Moving",
         "notinstalled": "未安裝此遊戲",
         "processing": "Processing files, please wait",
         "reparing": "遊戲修復中，請稍等",

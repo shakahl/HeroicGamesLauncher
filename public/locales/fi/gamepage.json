@@ -114,7 +114,7 @@
         "hasUpdates": "Uusi versio saatavilla!",
         "installed": "Asennettu",
         "installing": "Asennetaan",
-        "moving": "Siirretään asennusta, odota",
+        "moving_game": "Moving",
         "notinstalled": "Tätä peliä ei ole asennettu",
         "processing": "Processing files, please wait",
         "reparing": "Korjataan peliä, odota",

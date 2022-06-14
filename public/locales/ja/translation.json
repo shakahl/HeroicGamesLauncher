@@ -176,7 +176,7 @@
     "infobox": {
         "help": "ヘルプ",
         "requirements": "システム要求",
-        "wine-path": "Path"
+        "wine_path": "Path"
     },
     "install": {
         "path": "Select Install Path"

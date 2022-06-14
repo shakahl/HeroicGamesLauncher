@@ -176,7 +176,7 @@
     "infobox": {
         "help": "Hjälp",
         "requirements": "Systemkrav",
-        "wine-path": "Path"
+        "wine_path": "Path"
     },
     "install": {
         "path": "Ange installationssökväg"

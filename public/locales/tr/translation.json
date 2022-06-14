@@ -176,7 +176,7 @@
     "infobox": {
         "help": "Yardım",
         "requirements": "Sistem Gereksinimleri",
-        "wine-path": "Path"
+        "wine_path": "Path"
     },
     "install": {
         "path": "Kurulum Yolunu Seçin"

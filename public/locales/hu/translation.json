@@ -176,7 +176,7 @@
     "infobox": {
         "help": "Segítség",
         "requirements": "Rendszerkövetelmények",
-        "wine-path": "Path"
+        "wine_path": "Path"
     },
     "install": {
         "path": "Telepítési útvonal kiválasztása"

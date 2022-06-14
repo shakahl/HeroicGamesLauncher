@@ -18,6 +18,7 @@ export default function InfoBox({ children, text }: Props) {
     keys to parse
       t('infobox.help')
       t('infobox.requirements')
+      t('infobox.wine_path', 'Path')
     */
 
   return (

@@ -176,7 +176,7 @@
     "infobox": {
         "help": "Bantuan",
         "requirements": "Persyaratan Sistem",
-        "wine-path": "Path"
+        "wine_path": "Path"
     },
     "install": {
         "path": "Pilih Lokasi Pemasangan"

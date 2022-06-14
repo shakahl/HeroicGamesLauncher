@@ -114,7 +114,7 @@
         "hasUpdates": "Uus versioon saadaval!",
         "installed": "Installitud",
         "installing": "Paigaldamine",
-        "moving": "Paigalduse liiguatamine, palun oodake",
+        "moving_game": "Moving",
         "notinstalled": "See mäng ei ole paigaldatud",
         "processing": "Failide töötlemine, palun oodake",
         "reparing": "Mängu parandamine, palun oodake",

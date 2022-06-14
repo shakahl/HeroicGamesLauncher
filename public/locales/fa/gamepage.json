@@ -114,7 +114,7 @@
         "hasUpdates": "نسخه جدید موجود است!",
         "installed": "نصب شده",
         "installing": "در حال نصب",
-        "moving": "در حال انتقال نصب، لطفا صبر کنید",
+        "moving_game": "Moving",
         "notinstalled": "این بازی نصب نشده است",
         "processing": "Processing files, please wait",
         "reparing": "در حال تعمیر بازی، لطفا صبر کنید",

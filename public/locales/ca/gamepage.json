@@ -114,7 +114,7 @@
         "hasUpdates": "Hi ha una versió nova disponible!",
         "installed": "Instal·lat",
         "installing": "S'està instal·lant",
-        "moving": "S'està movent la instal·lació, espereu",
+        "moving_game": "Moving",
         "notinstalled": "Aquest joc no està instal·lat",
         "processing": "Processing files, please wait",
         "reparing": "S'està reparant el joc, espereu",

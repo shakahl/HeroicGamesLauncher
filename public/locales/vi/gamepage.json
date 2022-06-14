@@ -114,7 +114,7 @@
         "hasUpdates": "Có phiên bản mới!",
         "installed": "Đã cài",
         "installing": "Đang cài",
-        "moving": "Đang chuyển, vui lòng đợi",
+        "moving_game": "Moving",
         "notinstalled": "Game chưa được cài",
         "processing": "Processing files, please wait",
         "reparing": "Đang sửa game, vui lòng đợi",

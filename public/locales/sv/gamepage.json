@@ -114,7 +114,7 @@
         "hasUpdates": "Ny version tillgänglig!",
         "installed": "Installerad",
         "installing": "Installerar",
-        "moving": "Flyttar installationen, vänligen vänta",
+        "moving_game": "Moving",
         "notinstalled": "Detta spelet är inte installerat",
         "processing": "Processing files, please wait",
         "reparing": "Reparerar spelet, vänligen vänta",

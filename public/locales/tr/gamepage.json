@@ -114,7 +114,7 @@
         "hasUpdates": "Yeni sürüm var!",
         "installed": "Kuruldu",
         "installing": "Kuruluyor",
-        "moving": "Kurulum taşınıyor, lütfen bekleyin",
+        "moving_game": "Moving",
         "notinstalled": "Bu oyun kurulu değil",
         "processing": "Processing files, please wait",
         "reparing": "Oyun onarılıyor, lütfen bekleyin",
