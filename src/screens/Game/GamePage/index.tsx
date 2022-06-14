@@ -466,7 +466,9 @@ export default function GamePage(): JSX.Element | null {
     }
 
     if (isMoving) {
-      return `${t('status.moving')}`
+      return `${t('status.moving_game', 'Moving')} ${
+        percent && bytes && eta ? `${percent}% [${bytes} ${eta}]` : '...'
+      }`
     }
 
     const currentProgress =

@@ -8,7 +8,12 @@ import { GameConfig } from '../game_config'
 import { GlobalConfig } from '../config'
 import { LegendaryLibrary } from './library'
 import { LegendaryUser } from './user'
-import { execAsync, getSteamRuntime, isOnline } from '../utils'
+import {
+  execAsync,
+  getSteamRuntime,
+  isOnline,
+  searchForExecutableOnPath
+} from '../utils'
 import {
   execOptions,
   heroicGamesConfigPath,
@@ -30,7 +35,7 @@ import {
   launchCleanup
 } from '../launcher'
 import { addShortcuts, removeShortcuts } from '../shortcuts'
-import { basename, join } from 'path'
+import { basename, dirname, join } from 'path'
 import { runLegendaryCommand } from './library'
 import { gameInfoStore } from './electronStores'
 
@@ -201,29 +206,89 @@ class LegendaryGame extends Game {
    */
   public async moveInstall(newInstallPath: string) {
     const oldInstallPath = (await this.getGameInfo()).install.install_path
+    const rsync = await searchForExecutableOnPath('rsync')
 
     newInstallPath = join(newInstallPath, basename(oldInstallPath))
 
-    const command = `mv -f '${oldInstallPath}' '${newInstallPath}'`
+    const rsyncCommand = `-avh --info=progress2 ${oldInstallPath} ${dirname(
+      newInstallPath
+    )}`.split(' ')
+
+    const removeFilesCommand = `rm -Rf ${oldInstallPath}`
+    const mvCommand = `-f '${oldInstallPath}' '${newInstallPath}'`.split(' ')
+
+    const bin = rsync ? 'rsync' : 'mv'
+    const command = rsync ? rsyncCommand : mvCommand
 
     logInfo(
-      [`Moving ${this.appName} to ${newInstallPath} with`, command],
+      [
+        `Moving ${this.appName} to ${newInstallPath} with`,
+        [bin, ...command].join(' ')
+      ],
       LogPrefix.Legendary
     )
 
-    await execAsync(command)
-      .then(() => {
+    await new Promise((res, rej) => {
+      const child = spawn(bin, [...command])
+      child.stdout.on('data', (data: Buffer) => {
+        const progress = `${data}`
+          ?.split('\r')[1]
+          ?.trim()
+          ?.replace(/\s{2,}/g, ' ')
+
+        const [bytes, percent, perf, eta] = progress ? progress.split(' ') : []
+        if (bytes && percent && perf && eta && rsync) {
+          this.window.webContents.send('setGameStatus', {
+            appName: this.appName,
+            runner: 'legendary',
+            status: 'moving',
+            progress: {
+              eta: `@${perf} | ${eta}`,
+              percent: Number(percent.replace('%', '')),
+              bytes: `${bytes}`
+            }
+          })
+        }
+      })
+
+      child.stderr.on('data', (data: Buffer) => {
+        console.log(`stderr: ${data}`)
+      })
+
+      child.on('close', (code, signal) => {
+        if (signal) {
+          console.log({ signal })
+          rej('Process terminated with signal ' + signal)
+        }
+
+        res(`${code} - ${signal}`)
+      })
+
+      child.on('error', (error) => {
+        console.log({ error })
+        rej(error)
+      })
+    })
+      .then(async () => {
+        // remove files in case rsync was used
         LegendaryLibrary.get().changeGameInstallPath(
           this.appName,
           newInstallPath
         )
+        this.window.webContents.send('setGameStatus', {
+          appName: this.appName,
+          runner: 'legendary',
+          status: 'done'
+        })
+        if (!rsync) {
+          return
+        }
+        await execAsync(removeFilesCommand)
+          .then(() => logInfo('Old Files Removed', LogPrefix.Backend))
+          .catch(() => logError('Error removing old files', LogPrefix.Backend))
       })
-      .catch((error) => {
-        logError(
-          `Failed to move ${this.appName}: ${error}`,
-          LogPrefix.Legendary
-        )
-      })
+      .catch((err) => logError(`${err}`, LogPrefix.Backend))
+
     return newInstallPath
   }
 
@@ -231,7 +296,7 @@ class LegendaryGame extends Game {
   currentDownloadSize = 0
 
   public onInstallOrUpdateOutput(
-    action: 'installing' | 'updating',
+    action: 'installing' | 'updating' | 'moving',
     totalDownloadSize: number,
     data: string
   ) {

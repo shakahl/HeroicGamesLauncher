@@ -126,7 +126,7 @@ const GameCard = ({
       return t('status.installing') + ` ${percent}%`
     }
     if (isMoving) {
-      return t('gamecard.moving', 'Moving')
+      return t('gamecard.moving', 'Moving') + ` ${percent}%`
     }
     if (isReparing) {
       return t('gamecard.repairing', 'Repairing')
